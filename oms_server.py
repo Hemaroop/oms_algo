@@ -37,13 +37,21 @@ def addToOrderList(_orderList, _newRcvdOrder):
                             elif (_orderList[_listIndex]._fulfilmentType == 'all-or-nothing' and _newRcvdOrder._fulfilmentType == 'partial'):
                                 _listIndex = _listIndex + 1
                             else:
-                                print('Remaining: Quantity -> Customer Type -> Coin Toss')
-                                print('Order added at index {0}.'.format(_listIndex+1))
-                                if (_listIndex + 1) < _listLen:
-                                    _orderList.insert(_listIndex+1, _newRcvdOrder)
+                                print('Checking prioritization based on order quantity...')
+                                if (_orderList[_listIndex]._orderQty < _newRcvdOrder._orderQty):
+                                    print('Order added at index {0}.'.format(_listIndex))
+                                    _orderList.insert(_listIndex, _newRcvdOrder)
+                                    break
+                                elif (_orderList[_listIndex]._orderQty > _newRcvdOrder._orderQty):
+                                    _listIndex = _listIndex + 1
                                 else:
-                                    _orderList.append(_newRcvdOrder)
-                                break
+                                    print('Remaining: Customer Type -> Coin Toss')
+                                    print('Order added at index {0}.'.format(_listIndex+1))
+                                    if (_listIndex + 1) < _listLen:
+                                        _orderList.insert(_listIndex+1, _newRcvdOrder)
+                                    else:
+                                        _orderList.append(_newRcvdOrder)
+                                    break
                         else:
                             _listIndex = _listIndex + 1
                 else:
@@ -80,13 +88,21 @@ def addToOrderList(_orderList, _newRcvdOrder):
                                 elif (_orderList[_listIndex]._fulfilmentType == 'all-or-nothing' and _newRcvdOrder._fulfilmentType == 'partial'):
                                     _listIndex = _listIndex + 1
                                 else:
-                                    print('Remaining: Quantity -> Customer Type -> Coin Toss')
-                                    print('Order added at index {0}.'.format(_listIndex+1))
-                                    if (_listIndex + 1) < _listLen:
-                                        _orderList.insert(_listIndex+1, _newRcvdOrder)
+                                    print('Checking prioritization based on order quantity...')
+                                    if (_orderList[_listIndex]._orderQty < _newRcvdOrder._orderQty):
+                                        print('Order added at index {0}.'.format(_listIndex))
+                                        _orderList.insert(_listIndex, _newRcvdOrder)
+                                        break
+                                    elif (_orderList[_listIndex]._orderQty > _newRcvdOrder._orderQty):
+                                        _listIndex = _listIndex + 1
                                     else:
-                                        _orderList.append(_newRcvdOrder)
-                                    break
+                                        print('Remaining: Customer Type -> Coin Toss')
+                                        print('Order added at index {0}.'.format(_listIndex+1))
+                                        if (_listIndex + 1) < _listLen:
+                                            _orderList.insert(_listIndex+1, _newRcvdOrder)
+                                        else:
+                                            _orderList.append(_newRcvdOrder)
+                                        break
                             else:
                                 _listIndex = _listIndex + 1
                     else:
