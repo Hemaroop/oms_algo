@@ -116,10 +116,23 @@ def addToOrderList(_orderList, _newRcvdOrder):
             _orderList.append(_newRcvdOrder)
             print('Order added at index {0}.'.format(_listIndex))
 
+def printUpdatedOrderQueue(_orderList):
+    _parseIndex = 0
+    while _parseIndex < len(_orderList):
+        print('\nQuantity:{0} Limit Price:{1}'.format(_orderList[_parseIndex]._orderQty, _orderList[_parseIndex]._limitPrice))
+        _parseIndex = _parseIndex + 1
+            
 def updateOrderQueue(_orderList, _mIndices):
+    _orderType = _orderList[0]._orderPosition
     for _indices in _mIndices:
         if _orderList[_indices]._orderQty == 0:
             del _orderList[_indices]
+    if len(_orderList) > 0:
+        print('\nOutstanding {0} orders:'.format(_orderType))
+        printUpdatedOrderQueue(_orderList)
+    else:
+        print('\n{0} order list is empty.'.format(_orderType))
+        
                         
 def start_oms_server():
     _oms_socket = socket.socket()
@@ -188,6 +201,7 @@ def start_oms_server():
                     _omsBuyOrderList.append(_newOrder)
                 else:
                     addToOrderList(_omsBuyOrderList, _newOrder)
+                printUpdatedOrderQueue(_omsBuyOrderList)
             else:
                 _matchedIndices = _newOrder.check_for_match(_omsSellOrderList)
                 if _matchedIndices is None:
@@ -195,11 +209,13 @@ def start_oms_server():
                         _omsBuyOrderList.append(_newOrder)
                     else:
                         addToOrderList(_omsBuyOrderList, _newOrder)
+                    printUpdatedOrderQueue(_omsBuyOrderList)
                 else:
                     print(_matchedIndices)
                     updateOrderQueue(_omsSellOrderList, _matchedIndices)
                     if _newOrder._orderQty != 0:
                         addToOrderList(_omsBuyOrderList, _newOrder)
+                        printUpdatedOrderQueue(_omsBuyOrderList)
 
         else:
             _sellOrderListLen = len(_omsSellOrderList)
@@ -209,6 +225,7 @@ def start_oms_server():
                     _omsSellOrderList.append(_newOrder)
                 else:
                     addToOrderList(_omsSellOrderList, _newOrder)
+                printUpdatedOrderQueue(_omsSellOrderList)
             else:
                 _matchedIndices = _newOrder.check_for_match(_omsBuyOrderList)
                 if _matchedIndices is None:
@@ -216,11 +233,12 @@ def start_oms_server():
                         _omsSellOrderList.append(_newOrder)
                     else:
                         addToOrderList(_omsSellOrderList, _newOrder)
+                    printUpdatedOrderQueue(_omsSellOrderList)
                 else:
                     print(_matchedIndices)
                     updateOrderQueue(_omsBuyOrderList, _matchedIndices)
                     if _newOrder._orderQty != 0:
                         addToOrderList(_omsSellOrderList, _newOrder)
-                    
+                        printUpdatedOrderQueue(_omsSellOrderList)
                     
 start_oms_server()
