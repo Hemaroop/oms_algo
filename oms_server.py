@@ -30,7 +30,10 @@ def addToOrderList(_orderList, _newRcvdOrder):
                         if (_timeDifference.days == 0 and _timeDifference.seconds == 0 and _timeDifference.microseconds == 0):
                             print('Fulfilment Type -> Quantity -> Customer Type -> Coin Toss')
                             print('Order added at index {0}.'.format(_listIndex+1))
-                            _orderList.append(_newRcvdOrder)
+                            if (_listIndex + 1) < _listLen:
+                                _orderList.insert(_listIndex+1, _newRcvdOrder)
+                            else:
+                                _orderList.append(_newRcvdOrder)
                             break
                         else:
                             _listIndex = _listIndex + 1
@@ -61,7 +64,10 @@ def addToOrderList(_orderList, _newRcvdOrder):
                             if (_timeDifference.days == 0 and _timeDifference.seconds == 0 and _timeDifference.microseconds == 0):
                                 print('Fulfilment Type -> Quantity -> Customer Type -> Coin Toss')
                                 print('Order added at index {0}.'.format(_listIndex+1))
-                                _orderList.append(_newRcvdOrder)
+                                if (_listIndex + 1) < _listLen:
+                                    _orderList.insert(_listIndex+1, _newRcvdOrder)
+                                else:
+                                    _orderList.append(_newRcvdOrder)
                                 break
                             else:
                                 _listIndex = _listIndex + 1

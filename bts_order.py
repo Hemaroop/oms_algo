@@ -73,7 +73,9 @@ class BTS_Order:
                         _parseIndex = _parseIndex + 1
                     _priceToUse = _match_order_list[_parseIndex]._limitPrice
                 else:
-                    _parseIndex = _orderListLen
+                    if _match_order_list[_parseIndex]._stdOrderType == 'limit':
+                        while ((_parseIndex < _orderListLen) and (_match_order_list[_parseIndex]._stdOrderType != 'market')):
+                            _parseIndex = _parseIndex + 1
             
         else:
             while _parseIndex < _orderListLen:
@@ -106,7 +108,9 @@ class BTS_Order:
                         _parseIndex = _parseIndex + 1
                     _priceToUse = _match_order_list[_parseIndex]._limitPrice
                 else:
-                    _parseIndex = _orderListLen
+                    if _match_order_list[_parseIndex]._stdOrderType == 'limit':
+                        while ((_parseIndex < _orderListLen) and (_match_order_list[_parseIndex]._stdOrderType != 'market')):
+                            _parseIndex = _parseIndex + 1
 
         if (_partial_order_match_found == False):
             print('No match found. Submitting to %s order book.' %(self._orderPosition))
