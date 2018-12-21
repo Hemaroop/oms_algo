@@ -20,6 +20,7 @@ def addToOrderList(_orderList, _newRcvdOrder):
             if _newRcvdOrder._orderPosition == 'buy':
                 if ((str(_orderList[_listIndex]._limitPrice) == str(_newRcvdOrder._limitPrice)) or
                     (_orderList[_listIndex]._stdOrderType == 'market' and _newRcvdOrder._stdOrderType == 'market')):
+                    print('Checking prioritization based on timestamp...')
                     _timeDifference = _newRcvdOrder._orderDateTime - _orderList[_listIndex]._orderDateTime
                     #print('TD:{0}days, {1}seconds and {2}microseconds'.format(_timeDifference.days, _timeDifference.seconds, _timeDifference.microseconds))
                     if _timeDifference.days < 0:
@@ -28,13 +29,21 @@ def addToOrderList(_orderList, _newRcvdOrder):
                         break
                     else:
                         if (_timeDifference.days == 0 and _timeDifference.seconds == 0 and _timeDifference.microseconds == 0):
-                            print('Fulfilment Type -> Quantity -> Customer Type -> Coin Toss')
-                            print('Order added at index {0}.'.format(_listIndex+1))
-                            if (_listIndex + 1) < _listLen:
-                                _orderList.insert(_listIndex+1, _newRcvdOrder)
+                            print('Checking prioritization based on fulfilment type...')
+                            if (_orderList[_listIndex]._fulfilmentType == 'partial' and _newRcvdOrder._fulfilmentType == 'all-or-nothing'):
+                                print('Order added at index {0}.'.format(_listIndex))
+                                _orderList.insert(_listIndex, _newRcvdOrder)
+                                break
+                            elif (_orderList[_listIndex]._fulfilmentType == 'all-or-nothing' and _newRcvdOrder._fulfilmentType == 'partial'):
+                                _listIndex = _listIndex + 1
                             else:
-                                _orderList.append(_newRcvdOrder)
-                            break
+                                print('Remaining: Quantity -> Customer Type -> Coin Toss')
+                                print('Order added at index {0}.'.format(_listIndex+1))
+                                if (_listIndex + 1) < _listLen:
+                                    _orderList.insert(_listIndex+1, _newRcvdOrder)
+                                else:
+                                    _orderList.append(_newRcvdOrder)
+                                break
                         else:
                             _listIndex = _listIndex + 1
                 else:
@@ -54,6 +63,7 @@ def addToOrderList(_orderList, _newRcvdOrder):
                 else:
                     if ((str(_orderList[_listIndex]._limitPrice) == str(_newRcvdOrder._limitPrice)) or
                         (_orderList[_listIndex]._stdOrderType == 'market' and _newRcvdOrder._stdOrderType == 'market')):
+                        print('Checking prioritization based on timestamp...')
                         _timeDifference = _newRcvdOrder._orderDateTime - _orderList[_listIndex]._orderDateTime
                         #print('TD:{0}days, {1}seconds and {2}microseconds'.format(_timeDifference.days, _timeDifference.seconds, _timeDifference.microseconds))
                         if _timeDifference.days < 0:
@@ -62,13 +72,21 @@ def addToOrderList(_orderList, _newRcvdOrder):
                             break
                         else:
                             if (_timeDifference.days == 0 and _timeDifference.seconds == 0 and _timeDifference.microseconds == 0):
-                                print('Fulfilment Type -> Quantity -> Customer Type -> Coin Toss')
-                                print('Order added at index {0}.'.format(_listIndex+1))
-                                if (_listIndex + 1) < _listLen:
-                                    _orderList.insert(_listIndex+1, _newRcvdOrder)
+                                print('Checking prioritization based on fulfilment type...')
+                                if (_orderList[_listIndex]._fulfilmentType == 'partial' and _newRcvdOrder._fulfilmentType == 'all-or-nothing'):
+                                    print('Order added at index {0}.'.format(_listIndex))
+                                    _orderList.insert(_listIndex, _newRcvdOrder)
+                                    break
+                                elif (_orderList[_listIndex]._fulfilmentType == 'all-or-nothing' and _newRcvdOrder._fulfilmentType == 'partial'):
+                                    _listIndex = _listIndex + 1
                                 else:
-                                    _orderList.append(_newRcvdOrder)
-                                break
+                                    print('Remaining: Quantity -> Customer Type -> Coin Toss')
+                                    print('Order added at index {0}.'.format(_listIndex+1))
+                                    if (_listIndex + 1) < _listLen:
+                                        _orderList.insert(_listIndex+1, _newRcvdOrder)
+                                    else:
+                                        _orderList.append(_newRcvdOrder)
+                                    break
                             else:
                                 _listIndex = _listIndex + 1
                     else:
