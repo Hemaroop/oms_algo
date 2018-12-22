@@ -71,7 +71,8 @@ class BTS_Order:
                             return _matchIndices
                     else:
                         _parseIndex = _parseIndex + 1
-                    _priceToUse = _match_order_list[_parseIndex]._limitPrice
+                    if _parseIndex < _orderListLen:
+                        _priceToUse = _match_order_list[_parseIndex]._limitPrice
                 else:
                     if _match_order_list[_parseIndex]._stdOrderType == 'limit':
                         while ((_parseIndex < _orderListLen) and (_match_order_list[_parseIndex]._stdOrderType != 'market')):
@@ -106,7 +107,8 @@ class BTS_Order:
                             return _matchIndices
                     else:
                         _parseIndex = _parseIndex + 1
-                    _priceToUse = _match_order_list[_parseIndex]._limitPrice
+                    if _parseIndex < _orderListLen:
+                        _priceToUse = _match_order_list[_parseIndex]._limitPrice
                 else:
                     if _match_order_list[_parseIndex]._stdOrderType == 'limit':
                         while ((_parseIndex < _orderListLen) and (_match_order_list[_parseIndex]._stdOrderType != 'market')):

@@ -119,14 +119,16 @@ def addToOrderList(_orderList, _newRcvdOrder):
 def printUpdatedOrderQueue(_orderList):
     _parseIndex = 0
     while _parseIndex < len(_orderList):
-        print('\nQuantity:{0} Limit Price:{1}'.format(_orderList[_parseIndex]._orderQty, _orderList[_parseIndex]._limitPrice))
+        print('\nQuantity:{0} Limit Price:{1} {2} {3}'.format(_orderList[_parseIndex]._orderQty, _orderList[_parseIndex]._limitPrice, _orderList[_parseIndex]._fulfilmentType, _orderList[_parseIndex]._stdOrderType))
         _parseIndex = _parseIndex + 1
             
 def updateOrderQueue(_orderList, _mIndices):
     _orderType = _orderList[0]._orderPosition
+    _ordersRemoved = 0
     for _indices in _mIndices:
-        if _orderList[_indices]._orderQty == 0:
-            del _orderList[_indices]
+        if _orderList[_indices - _ordersRemoved]._orderQty == 0:
+            del _orderList[_indices - _ordersRemoved]
+            _ordersRemoved = _ordersRemoved + 1
     if len(_orderList) > 0:
         print('\nOutstanding {0} orders:'.format(_orderType))
         printUpdatedOrderQueue(_orderList)
