@@ -126,7 +126,8 @@ def addToOrderList(_orderList, _newRcvdOrder):
 def printUpdatedOrderQueue(_orderList):
     _parseIndex = 0
     while _parseIndex < len(_orderList):
-        print('\nQuantity:{0} Limit Price:{1} {2} {3}'.format(_orderList[_parseIndex]._orderQty, _orderList[_parseIndex]._limitPrice, _orderList[_parseIndex]._fulfilmentType, _orderList[_parseIndex]._stdOrderType))
+        print('\nParticipant Id:{0} Quantity:{1} OrderType: {2} {3} LimitPrice:{4}'.format(_orderList[_parseIndex]._participantId, _orderList[_parseIndex]._orderQty, _orderList[_parseIndex]._fulfilmentType,
+                                                                                              _orderList[_parseIndex]._stdOrderType, _orderList[_parseIndex]._limitPrice))
         _parseIndex = _parseIndex + 1
             
 def updateOrderQueue(_orderList, _mIndices):
@@ -137,7 +138,7 @@ def updateOrderQueue(_orderList, _mIndices):
             del _orderList[_indices - _ordersRemoved]
             _ordersRemoved = _ordersRemoved + 1
     if len(_orderList) > 0:
-        print('\nOutstanding {0} orders:'.format(_orderType))
+        print('\nOutstanding {0} orders: {1}'.format(_orderType, len(_orderList)))
         printUpdatedOrderQueue(_orderList)
     else:
         print('\n{0} order list is empty.'.format(_orderType))
@@ -155,6 +156,7 @@ def start_oms_server():
         #Loop Initialization
         _oms_client, _oms_cli_addr = _oms_socket.accept()
         print('\nNew Order')
+        _participantId = 0
         _orderType = 8
         _orderQuantity = 0
         _limitPrice = 0
@@ -171,6 +173,7 @@ def start_oms_server():
         _matchedIndices = None
         
         #Receive Order Parameters
+        _pId = _oms_client.recv(4)
         _otype = _oms_client.recv(4)
         _oqty = _oms_client.recv(4)
         _limPrice = _oms_client.recv(4)
@@ -184,6 +187,7 @@ def start_oms_server():
         _oMicroSecond = _oms_client.recv(4)
         
         #Unpacking received data into correct structures
+        _participantId = struct.unpack('i', _pId)[0]
         _orderType = struct.unpack('i', _otype)[0]
         _orderQuantity = struct.unpack('i', _oqty)[0]
         if (_orderType % 2 == 1):
@@ -200,7 +204,7 @@ def start_oms_server():
         _orderDateTime = datetime(_orderYear, _orderMonth, _orderDay, _orderHour, _orderMinute, _orderSecond, _orderMicroSecond, None)
         print(_orderDateTime)
 
-        _newOrder = BTS_Order(_orderType, _orderQuantity, _limitPrice, _minPartialFillQty, _orderDateTime)
+        _newOrder = BTS_Order(_participantId, _orderType, _orderQuantity, _limitPrice, _minPartialFillQty, _orderDateTime)
 
         if _newOrder._orderPosition == 'buy':
             _buyOrderListLen = len(_omsBuyOrderList)

@@ -3,6 +3,7 @@ from datetime import datetime
 _marketPrice = 98.753
 
 class BTS_Order:
+    _participantId = 0
     _orderPosition = ''
     _stdOrderType = ''
     _orderQty = 0
@@ -10,7 +11,7 @@ class BTS_Order:
     _limitPrice = 0
     _minPartialFillQty = 0
     _orderDateTime = None
-    def __init__(self, _order_type, _order_qty, _limit_price=0, _min_pfill_qty=0, _order_date_time=datetime.utcnow()):
+    def __init__(self, _participant_id, _order_type, _order_qty, _limit_price=0, _min_pfill_qty=0, _order_date_time=datetime.utcnow()):
         if _order_type < 4:
             self._orderPosition = 'buy'
         else:
@@ -27,9 +28,11 @@ class BTS_Order:
         self._orderQty = _order_qty
         self._minPartialFillQty = _min_pfill_qty
         self._orderDateTime = _order_date_time
+        self._participantId = _participant_id
         
         print('Order instance created with following attributes:')
         print('Order Type: {0} {1} {2}'.format(self._orderPosition, self._stdOrderType, self._fulfilmentType))
+        print('Participant Id: %d' %(self._participantId))
         print('Order Quantity: %d' %(self._orderQty))
         print('Limit Price: %f' %(self._limitPrice))
         print('Minimum partial-fill quantity: %d' %(self._minPartialFillQty))
@@ -44,77 +47,84 @@ class BTS_Order:
         #The following logic is self-explanatory. Please refer to BondBlocks' OMS part of the FullSpecs document 
         if self._orderPosition == 'buy':
             while _parseIndex < _orderListLen:
-                #Price at which the orders will match
-                if _match_order_list[_parseIndex]._stdOrderType == 'market':
-                    if self._stdOrderType == 'market':
-                        _priceToUse = _marketPrice
-                    else:
-                        _priceToUse = self._limitPrice
-                        
-                #This logic covers both partial and all-or-nothing orders
-                if ((_match_order_list[_parseIndex]._limitPrice <= self._limitPrice) or (self._stdOrderType == 'market') or
-                    (_match_order_list[_parseIndex]._stdOrderType == 'market')):
-                    if ((_match_order_list[_parseIndex]._orderQty >= self._minPartialFillQty) and
-                        (self._orderQty >= _match_order_list[_parseIndex]._minPartialFillQty)):
-                        _matchIndices.append(_parseIndex)
-                        if self._orderQty > _match_order_list[_parseIndex]._orderQty:
-                            print('{0} units matched @{1}'.format(_match_order_list[_parseIndex]._orderQty, _priceToUse))
-                            self._orderQty = self._orderQty - _match_order_list[_parseIndex]._orderQty
-                            _match_order_list[_parseIndex]._orderQty = 0
-                            _partial_order_match_found = True
-                            _parseIndex = _parseIndex + 1
+                if self._participantId == _match_order_list[_parseIndex]._participantId:
+                    _parseIndex = _parseIndex + 1
+                else:                    
+                    #Price at which the orders will match
+                    if _match_order_list[_parseIndex]._stdOrderType == 'market':
+                        if self._stdOrderType == 'market':
+                            _priceToUse = _marketPrice
                         else:
-                            print('{0} units matched @{1}'.format(self._orderQty, _priceToUse))
-                            _match_order_list[_parseIndex]._orderQty = _match_order_list[_parseIndex]._orderQty - self._orderQty
-                            self._orderQty = 0
-                            print('Order Matched.')
-                            return _matchIndices
-                    else:
-                        _parseIndex = _parseIndex + 1
-                    if _parseIndex < _orderListLen:
-                        _priceToUse = _match_order_list[_parseIndex]._limitPrice
-                else:
-                    if _match_order_list[_parseIndex]._stdOrderType == 'limit':
-                        while ((_parseIndex < _orderListLen) and (_match_order_list[_parseIndex]._stdOrderType != 'market')):
+                            _priceToUse = self._limitPrice
+                        
+                    #This logic covers both partial and all-or-nothing orders
+                    if ((_match_order_list[_parseIndex]._limitPrice <= self._limitPrice) or (self._stdOrderType == 'market') or
+                        (_match_order_list[_parseIndex]._stdOrderType == 'market')):
+                        if ((_match_order_list[_parseIndex]._orderQty >= self._minPartialFillQty) and
+                            (self._orderQty >= _match_order_list[_parseIndex]._minPartialFillQty)):
+                            _matchIndices.append(_parseIndex)
+                            if self._orderQty > _match_order_list[_parseIndex]._orderQty:
+                                print('{0} units matched @{1}'.format(_match_order_list[_parseIndex]._orderQty, _priceToUse))
+                                self._orderQty = self._orderQty - _match_order_list[_parseIndex]._orderQty
+                                _match_order_list[_parseIndex]._orderQty = 0
+                                _partial_order_match_found = True
+                                _parseIndex = _parseIndex + 1
+                            else:
+                                print('{0} units matched @{1}'.format(self._orderQty, _priceToUse))
+                                _match_order_list[_parseIndex]._orderQty = _match_order_list[_parseIndex]._orderQty - self._orderQty
+                                self._orderQty = 0
+                                print('Order Matched.')
+                                return _matchIndices
+                        else:
                             _parseIndex = _parseIndex + 1
+                        if _parseIndex < _orderListLen:
+                            _priceToUse = _match_order_list[_parseIndex]._limitPrice
+                    else:
+                        if _match_order_list[_parseIndex]._stdOrderType == 'limit':
+                            while ((_parseIndex < _orderListLen) and (_match_order_list[_parseIndex]._stdOrderType != 'market')):
+                                _parseIndex = _parseIndex + 1
             
         else:
             while _parseIndex < _orderListLen:
-                #Price at which the orders will match
-                if _match_order_list[_parseIndex]._stdOrderType == 'market':
-                    if self._stdOrderType == 'market':
-                        _priceToUse = _marketPrice
-                    else:
-                        _priceToUse = self._limitPrice
-
-                #This logic covers both partial and all-or-nothing orders
-                if ((_match_order_list[_parseIndex]._limitPrice >= self._limitPrice) or (self._stdOrderType == 'market') or
-                    (_match_order_list[_parseIndex]._stdOrderType == 'market')):
-                    if ((_match_order_list[_parseIndex]._orderQty >= self._minPartialFillQty) and
-                        (self._orderQty >= _match_order_list[_parseIndex]._minPartialFillQty)):
-                        _matchIndices.append(_parseIndex)
-                        if self._orderQty > _match_order_list[_parseIndex]._orderQty:
-                            print('{0} units matched @{1}'.format(_match_order_list[_parseIndex]._orderQty, _priceToUse))
-                            self._orderQty = self._orderQty - _match_order_list[_parseIndex]._orderQty
-                            _match_order_list[_parseIndex]._orderQty = 0
-                            _partial_order_match_found = True
-                            _parseIndex = _parseIndex + 1
-                        else:
-                            print('{0} units matched @{1}'.format(self._orderQty, _priceToUse))
-                            _match_order_list[_parseIndex]._orderQty = _match_order_list[_parseIndex]._orderQty - self._orderQty
-                            self._orderQty = 0
-                            print('Order Matched.')
-                            return _matchIndices
-                    else:
-                        _parseIndex = _parseIndex + 1
-                    if _parseIndex < _orderListLen:
-                        _priceToUse = _match_order_list[_parseIndex]._limitPrice
+                if self._participantId == _match_order_list[_parseIndex]._participantId:
+                    _parseIndex = _parseIndex + 1
                 else:
-                    if _match_order_list[_parseIndex]._stdOrderType == 'limit':
-                        while ((_parseIndex < _orderListLen) and (_match_order_list[_parseIndex]._stdOrderType != 'market')):
+                    #Price at which the orders will match
+                    if _match_order_list[_parseIndex]._stdOrderType == 'market':
+                        if self._stdOrderType == 'market':
+                            _priceToUse = _marketPrice
+                        else:
+                            _priceToUse = self._limitPrice
+
+                    #This logic covers both partial and all-or-nothing orders
+                    if ((_match_order_list[_parseIndex]._limitPrice >= self._limitPrice) or (self._stdOrderType == 'market') or
+                        (_match_order_list[_parseIndex]._stdOrderType == 'market')):
+                        if ((_match_order_list[_parseIndex]._orderQty >= self._minPartialFillQty) and
+                            (self._orderQty >= _match_order_list[_parseIndex]._minPartialFillQty)):
+                            _matchIndices.append(_parseIndex)
+                            if self._orderQty > _match_order_list[_parseIndex]._orderQty:
+                                print('{0} units matched @{1}'.format(_match_order_list[_parseIndex]._orderQty, _priceToUse))
+                                self._orderQty = self._orderQty - _match_order_list[_parseIndex]._orderQty
+                                _match_order_list[_parseIndex]._orderQty = 0
+                                _partial_order_match_found = True
+                                _parseIndex = _parseIndex + 1
+                            else:
+                                print('{0} units matched @{1}'.format(self._orderQty, _priceToUse))
+                                _match_order_list[_parseIndex]._orderQty = _match_order_list[_parseIndex]._orderQty - self._orderQty
+                                self._orderQty = 0
+                                print('Order Matched.')
+                                return _matchIndices
+                        else:
                             _parseIndex = _parseIndex + 1
+                        if _parseIndex < _orderListLen:
+                            _priceToUse = _match_order_list[_parseIndex]._limitPrice
+                    else:
+                        if _match_order_list[_parseIndex]._stdOrderType == 'limit':
+                            while ((_parseIndex < _orderListLen) and (_match_order_list[_parseIndex]._stdOrderType != 'market')):
+                                _parseIndex = _parseIndex + 1
 
         if (_partial_order_match_found == False):
             print('No match found. Submitting to %s order book.' %(self._orderPosition))
         else:
             print('Submitting remaining order to %s order book.' %(self._orderPosition))
+            return _matchIndices
