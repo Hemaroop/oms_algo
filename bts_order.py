@@ -10,8 +10,9 @@ class BTS_Order:
     _fulfilmentType = ''
     _limitPrice = 0
     _minPartialFillQty = 0
+    _timeInForceRemaining = 0
     _orderDateTime = None
-    def __init__(self, _participant_id, _order_type, _order_qty, _limit_price=0, _min_pfill_qty=0, _order_date_time=datetime.utcnow()):
+    def __init__(self, _participant_id, _order_type, _order_qty, _limit_price=0, _min_pfill_qty=0, _time_In_Force_Remaining = 14, _order_date_time=datetime.now()):
         if _order_type < 4:
             self._orderPosition = 'buy'
         else:
@@ -27,6 +28,7 @@ class BTS_Order:
             self._fulfilmentType = 'partial'
         self._orderQty = _order_qty
         self._minPartialFillQty = _min_pfill_qty
+        self._timeInForceRemaining = _time_In_Force_Remaining
         self._orderDateTime = _order_date_time
         self._participantId = _participant_id
         
@@ -36,6 +38,7 @@ class BTS_Order:
         print('Order Quantity: %d' %(self._orderQty))
         print('Limit Price: %f' %(self._limitPrice))
         print('Minimum partial-fill quantity: %d' %(self._minPartialFillQty))
+        print('Time in force: {0} days'.format(self._timeInForceRemaining))
 
     def check_for_match(self, _match_order_list):
         _partial_order_match_found = False
