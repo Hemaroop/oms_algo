@@ -9,6 +9,7 @@ import btsTradingHours
 from sched import scheduler
 from threading import Thread, Lock
 from bts_order import BTS_Order
+from bts_quote import BTS_Quote
 
 _omsBuyOrderList = []
 _omsSellOrderList = []
@@ -264,20 +265,21 @@ def oms_scheduler():
             
             _omsScheduler.run()
 
-def start_oms_server():
-    _schedulerThread = Thread(None, oms_scheduler, 'omsScheduler')
-    _schedulerThread.start()
+def oms_order_listener():
+    global _omsBuyOrderList
+    global _omsSellOrderList
+
+    print('Starting Order Listener')
     _oms_socket = socket.socket()
     _oms_port = 6667
     _oms_socket.bind(('', _oms_port))
     print('Socket binded to %s' %(_oms_port))
     _oms_socket.listen(10)
     print('Socket is listening')
-
-    while _schedulerThread.is_alive():
+    while True:
         #Loop Initialization
         _oms_client, _oms_cli_addr = _oms_socket.accept()
-        print('\nNew Order')
+        print('\nNew Order\n')
         _participantId = 0
         _orderType = 8
         _orderQuantity = 0
@@ -378,6 +380,142 @@ def start_oms_server():
                     if _newOrder._orderQty != 0:
                         addToOrderList(_omsSellOrderList, _newOrder)
                         printUpdatedOrderQueue(_omsSellOrderList)
+
+def oms_quote_listener():
+    global _omsBuyOrderList
+    global _omsSellOrderList
+
+    print('Starting Quote Listener')
+    _oms_socket = socket.socket()
+    _oms_port = 6666
+    _oms_socket.bind(('', _oms_port))
+    print('Socket binded to %s' %(_oms_port))
+    _oms_socket.listen(10)
+    print('Socket is listening')
+    
+    while True:
+        #Loop Initialization
+        _oms_client, _oms_cli_addr = _oms_socket.accept()
+        print('\nNew Quote\n')
+        _participantId = 0
+        _bidPrice = 0
+        _bidSize = 0
+        _askPrice = 0
+        _askSize = 0
+        _minPartialFillQty = 0
+        _timeInForceRemaining = 0
+        _orderYear = 0
+        _orderMonth = 0
+        _orderDay = 0
+        _orderHour = 0
+        _orderMinute = 0
+        _orderSecond = 0
+        _orderMicroSecond = 0
+        
+        _newOrder = None
+        _matchedIndices = None
+        
+        #Receive Order Parameters
+        _pId = _oms_client.recv(4)
+        _bprice = _oms_client.recv(4)
+        _bsize = _oms_client.recv(4)
+        _aprice = _oms_client.recv(4)
+        _asize = _oms_client.recv(4)
+        _minParFillQty = _oms_client.recv(4)
+        _oTIFRemaining = _oms_client.recv(4)
+        _oYear = _oms_client.recv(4)
+        _oMonth = _oms_client.recv(4)
+        _oDay = _oms_client.recv(4)
+        _oHour = _oms_client.recv(4)
+        _oMinute = _oms_client.recv(4)
+        _oSecond = _oms_client.recv(4)
+        _oMicroSecond = _oms_client.recv(4)
+        
+        #Unpacking received data into correct structures
+        _participantId = struct.unpack('i', _pId)[0]
+        _bidPrice = struct.unpack('f', _bprice)[0]
+        _bidSize = struct.unpack('i', _bsize)[0]
+        _askPrice = struct.unpack('f', _aprice)[0]
+        _askSize = struct.unpack('i', _asize)[0]
+        _minPartialFillQty = struct.unpack('i', _minParFillQty)[0]
+        _timeInForceRemaining = struct.unpack('i', _oTIFRemaining)[0]
+        _orderYear = struct.unpack('i', _oYear)[0]
+        _orderMonth = struct.unpack('i', _oMonth)[0]
+        _orderDay = struct.unpack('i', _oDay)[0]
+        _orderHour = struct.unpack('i', _oHour)[0]
+        _orderMinute = struct.unpack('i', _oMinute)[0]
+        _orderSecond = struct.unpack('i', _oSecond)[0]
+        _orderMicroSecond = struct.unpack('i', _oMicroSecond)[0]
+
+        _quoteDateTime = datetime.datetime(_orderYear, _orderMonth, _orderDay, _orderHour, _orderMinute, _orderSecond, _orderMicroSecond, None)
+        print(_quoteDateTime)
+
+        _newQuote = BTS_Quote(_participantId, _bidPrice, _bidSize, _askPrice, _askSize, _minPartialFillQty, _timeInForceRemaining, _quoteDateTime)
+
+        if not _omsSellOrderList:
+            print('Adding to {0} order queue...'.format(_newQuote._buyOrder._orderPosition))
+            if not _omsBuyOrderList:
+                _omsBuyOrderList.append(_newQuote._buyOrder)
+            else:
+                addToOrderList(_omsBuyOrderList, _newQuote._buyOrder)
+            printUpdatedOrderQueue(_omsBuyOrderList)
+        else:
+            _matchedIndices = _newQuote._buyOrder.check_for_match(_omsSellOrderList)
+            if _matchedIndices is None:
+                if not _omsBuyOrderList:
+                    _omsBuyOrderList.append(_newQuote._buyOrder)
+                else:
+                    addToOrderList(_omsBuyOrderList, _newQuote._buyOrder)
+                printUpdatedOrderQueue(_omsBuyOrderList)
+            else:
+                print(_matchedIndices)
+                updateOrderQueue(_omsSellOrderList, _matchedIndices)
+                if _newQuote._buyOrder._orderQty != 0:
+                    addToOrderList(_omsBuyOrderList, _newQuote._buyOrder)
+                    printUpdatedOrderQueue(_omsBuyOrderList)
+
+        if not _omsBuyOrderList:
+            print('Adding to {0} order queue...'.format(_newQuote._sellOrder._orderPosition))
+            if not _omsSellOrderList:
+                _omsSellOrderList.append(_newQuote._sellOrder)
+            else:
+                addToOrderList(_omsSellOrderList, _newQuote._sellOrder)
+            printUpdatedOrderQueue(_omsSellOrderList)
+        else:
+            _matchedIndices = _newQuote._sellOrder.check_for_match(_omsBuyOrderList)
+            if _matchedIndices is None:
+                if not _omsSellOrderList:
+                    _omsSellOrderList.append(_newQuote._sellOrder)
+                else:
+                    addToOrderList(_omsSellOrderList, _newQuote._sellOrder)
+                printUpdatedOrderQueue(_omsSellOrderList)
+            else:
+                print(_matchedIndices)
+                updateOrderQueue(_omsBuyOrderList, _matchedIndices)
+                if _newQuote._sellOrder._orderQty != 0:
+                    addToOrderList(_omsSellOrderList, _newQuote._sellOrder)
+                    printUpdatedOrderQueue(_omsSellOrderList)
+            
+def start_oms_server():
+    
+    _schedulerThread = Thread(None, oms_scheduler, 'omsScheduler')
+    _schedulerThread.start()
+
+    _orderListenerThread = Thread(None, oms_order_listener, 'orderListener')
+    _orderListenerThread.start()
+
+    _quoteListenerThread = Thread(None, oms_quote_listener, 'quoteListener')
+    _quoteListenerThread.start()
+    
+    while _schedulerThread.is_alive():
+        if not _orderListenerThread.is_alive():
+            print('Order Listener not working. Closing OMS...')
+            sys.exit()
+        if not _quoteListenerThread.is_alive():
+            print('Quote Listener not working. Closing OMS...')
+            sys.exit()
+        
     print('Scheduler thread not alive. Closing OMS...')
-                    
+    sys.exit()
+    
 start_oms_server()

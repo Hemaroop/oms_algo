@@ -4,6 +4,7 @@ _marketPrice = 98.753
 
 class BTS_Order:
     _participantId = 0
+    _participantType = ''
     _orderPosition = ''
     _stdOrderType = ''
     _orderQty = 0
@@ -31,10 +32,15 @@ class BTS_Order:
         self._timeInForceRemaining = _time_In_Force_Remaining
         self._orderDateTime = _order_date_time
         self._participantId = _participant_id
-        
+
+        if ((self._participantId > 100) and (self._participantId <= 110)):
+            self._participantType = 'market_maker'
+        else:
+            self._participantType = 'investor'
+            
         print('Order instance created with following attributes:')
         print('Order Type: {0} {1} {2}'.format(self._orderPosition, self._stdOrderType, self._fulfilmentType))
-        print('Participant Id: %d' %(self._participantId))
+        print('Participant Id: {0} Participant Type: {1}'.format(self._participantId, self._participantType))
         print('Order Quantity: %d' %(self._orderQty))
         print('Limit Price: %f' %(self._limitPrice))
         print('Minimum partial-fill quantity: %d' %(self._minPartialFillQty))

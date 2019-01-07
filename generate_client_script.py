@@ -14,7 +14,7 @@ _scriptFileNameSuffix = '{0}{1}{2}{3}{4}{5}{6}'.format(_scriptCreationTime.year,
 _scriptFileName = '_autoOrderScript{0}.sh'.format(_scriptFileNameSuffix)
 
 _pythonEnv = 'python3'
-omsClientCommands = ['oms_client.py', 'oms_client_static_timestamp.py']
+omsClientCommands = ['oms_client_order.py', 'oms_client_order_static_timestamp.py']
 _numOrders = 500
 
 argv = sys.argv[1:]

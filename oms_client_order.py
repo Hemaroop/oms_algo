@@ -7,7 +7,7 @@ from datetime import datetime
 import bts_constraints
 
 def print_order_help():
-    print('python3 oms_client.py -i participant_id -t order_type -q order_qty -gt number of days -l limit_price (used only if order_type is 1 or 3)')
+    print('python3 oms_client_order.py -i participant_id -t order_type -q order_qty -gt number of days -l limit_price (used only if order_type is 1 or 3)')
     print('Participant id: [1,100]')
     print('Order type: [0,8). Refer to readme for information on order type codes.')
     print('Order quantity: Must be greater than minimum order size.')
@@ -47,7 +47,8 @@ def send_order_to_server():
             try:
                 _parseIndex = _parseIndex + 1
                 _participant_id = int(argv[_parseIndex])
-                _pidFound = True
+                if ((_participant_id <= 100) and (_participant_id > 0)):
+                    _pidFound = True
             except ValueError as err:
                 print('ERROR: %s' %err)
                 sys.exit()
