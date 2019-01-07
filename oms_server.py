@@ -95,12 +95,14 @@ def _tradingDayCloseHandler():
     while _buyParseIndex < len(_omsBuyOrderList):
         if _omsBuyOrderList[_buyParseIndex]._timeInForceRemaining == 0:
             del _omsBuyOrderList[_buyParseIndex]
+            _buyParseIndex = _buyParseIndex - 1
         _buyParseIndex = _buyParseIndex + 1
 
     _sellParseIndex = 0
     while _sellParseIndex < len(_omsSellOrderList):
         if _omsSellOrderList[_sellParseIndex]._timeInForceRemaining == 0:
             del _omsSellOrderList[_sellParseIndex]
+            _sellParseIndex = _sellParseIndex - 1
         _sellParseIndex = _sellParseIndex + 1
 
     print('\nBuy Order Queue:')
