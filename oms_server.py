@@ -5,6 +5,7 @@ import struct
 import sys
 import time
 import datetime
+import random
 import btsTradingHours
 from sched import scheduler
 from threading import Thread, Lock
@@ -26,8 +27,9 @@ _orderQueueAccessLock = Lock()
 def printUpdatedOrderQueue(_orderList):
     _parseIndex = 0
     while _parseIndex < len(_orderList):
-        print('\nParticipant Id:{0} Quantity:{1} OrderType: {2} {3} LimitPrice:{4}'.format(_orderList[_parseIndex]._participantId, _orderList[_parseIndex]._orderQty, _orderList[_parseIndex]._fulfilmentType,
-                                                                                              _orderList[_parseIndex]._stdOrderType, _orderList[_parseIndex]._limitPrice))
+        print('\nParticipant Id:{0} Quantity:{1} OrderType: {2} {3} {4} LimitPrice:{5}'.format(_orderList[_parseIndex]._participantId, _orderList[_parseIndex]._orderQty,
+                                                                                               _orderList[_parseIndex]._orderPosition, _orderList[_parseIndex]._stdOrderType,
+                                                                                               _orderList[_parseIndex]._fulfilmentType, _orderList[_parseIndex]._limitPrice))
         _parseIndex = _parseIndex + 1
             
 def updateOrderQueue(_orderList, _mIndices):
@@ -156,13 +158,23 @@ def addToOrderList(_orderList, _newRcvdOrder):
                                     elif (_orderList[_listIndex]._orderQty > _newRcvdOrder._orderQty):
                                         _listIndex = _listIndex + 1
                                     else:
-                                        print('Remaining: Customer Type -> Coin Toss')
-                                        print('Order added at index {0}.'.format(_listIndex+1))
-                                        if (_listIndex + 1) < _listLen:
-                                            _orderList.insert(_listIndex+1, _newRcvdOrder)
+                                        print('Checking prioritization based on customer type...')
+                                        if (_orderList[_listIndex]._participantType != _newRcvdOrder._participantType):
+                                            if _newRcvdOrder._participantType == 'investor':
+                                                print('Order added at index {0}.'.format(_listIndex))
+                                                _orderList.insert(_listIndex, _newRcvdOrder)
+                                                break
+                                            else:
+                                                _listIndex = _listIndex + 1
                                         else:
-                                            _orderList.append(_newRcvdOrder)
-                                        break
+                                            print('Using coin toss...')
+                                            _coinToss = random.randint(0,1)
+                                            if _coinToss == 1:
+                                                print('Order added at index {0}.'.format(_listIndex))
+                                                _orderList.insert(_listIndex, _newRcvdOrder)
+                                                break
+                                            else:
+                                                _listIndex = _listIndex + 1
                             else:
                                 _listIndex = _listIndex + 1
                     else:
@@ -207,13 +219,23 @@ def addToOrderList(_orderList, _newRcvdOrder):
                                     elif (_orderList[_listIndex]._orderQty > _newRcvdOrder._orderQty):
                                         _listIndex = _listIndex + 1
                                     else:
-                                        print('Remaining: Customer Type -> Coin Toss')
-                                        print('Order added at index {0}.'.format(_listIndex+1))
-                                        if (_listIndex + 1) < _listLen:
-                                            _orderList.insert(_listIndex+1, _newRcvdOrder)
+                                        print('Checking prioritization based on customer type...')
+                                        if (_orderList[_listIndex]._participantType != _newRcvdOrder._participantType):
+                                            if _newRcvdOrder._participantType == 'investor':
+                                                print('Order added at index {0}.'.format(_listIndex))
+                                                _orderList.insert(_listIndex, _newRcvdOrder)
+                                                break
+                                            else:
+                                                _listIndex = _listIndex + 1
                                         else:
-                                            _orderList.append(_newRcvdOrder)
-                                        break
+                                            print('Using coin toss...')
+                                            _coinToss = random.randint(0,1)
+                                            if _coinToss == 1:
+                                                print('Order added at index {0}.'.format(_listIndex))
+                                                _orderList.insert(_listIndex, _newRcvdOrder)
+                                                break
+                                            else:
+                                                _listIndex = _listIndex + 1
                             else:
                                 _listIndex = _listIndex + 1
                     else:
