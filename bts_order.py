@@ -1,8 +1,9 @@
 from datetime import datetime
 
-_marketPrice = 98.753
+_marketPrice = None
 
 class BTS_Order:
+    global _marketPrice
     _participantId = 0
     _participantType = ''
     _orderPosition = ''
@@ -45,8 +46,11 @@ class BTS_Order:
         print('Limit Price: %f' %(self._limitPrice))
         print('Minimum partial-fill quantity: %d' %(self._minPartialFillQty))
         print('Time in force: {0} days'.format(self._timeInForceRemaining))
+        print('Market Price: {0}'.format(_marketPrice))
 
     def check_for_match(self, _match_order_list):
+        global _marketPrice
+        
         _partial_order_match_found = False
         _orderListLen = len(_match_order_list)
         _parseIndex = 0
@@ -62,7 +66,11 @@ class BTS_Order:
                     #Price at which the orders will match
                     if _match_order_list[_parseIndex]._stdOrderType == 'market':
                         if self._stdOrderType == 'market':
-                            _priceToUse = _marketPrice
+                            if _marketPrice is None:
+                                _parseIndex = _parseIndex + 1
+                                continue
+                            else:
+                                _priceToUse = _marketPrice
                         else:
                             _priceToUse = self._limitPrice
                         
@@ -77,12 +85,14 @@ class BTS_Order:
                                 self._orderQty = self._orderQty - _match_order_list[_parseIndex]._orderQty
                                 _match_order_list[_parseIndex]._orderQty = 0
                                 _partial_order_match_found = True
+                                _marketPrice = _priceToUse
                                 _parseIndex = _parseIndex + 1
                             else:
                                 print('{0} units matched @{1}'.format(self._orderQty, _priceToUse))
                                 _match_order_list[_parseIndex]._orderQty = _match_order_list[_parseIndex]._orderQty - self._orderQty
                                 self._orderQty = 0
                                 print('Order Matched.')
+                                _marketPrice = _priceToUse
                                 return _matchIndices
                         else:
                             _parseIndex = _parseIndex + 1
@@ -101,7 +111,11 @@ class BTS_Order:
                     #Price at which the orders will match
                     if _match_order_list[_parseIndex]._stdOrderType == 'market':
                         if self._stdOrderType == 'market':
-                            _priceToUse = _marketPrice
+                            if _marketPrice is None:
+                                _parseIndex = _parseIndex + 1
+                                continue
+                            else:
+                                _priceToUse = _marketPrice
                         else:
                             _priceToUse = self._limitPrice
 
@@ -116,12 +130,14 @@ class BTS_Order:
                                 self._orderQty = self._orderQty - _match_order_list[_parseIndex]._orderQty
                                 _match_order_list[_parseIndex]._orderQty = 0
                                 _partial_order_match_found = True
+                                _marketPrice = _priceToUse
                                 _parseIndex = _parseIndex + 1
                             else:
                                 print('{0} units matched @{1}'.format(self._orderQty, _priceToUse))
                                 _match_order_list[_parseIndex]._orderQty = _match_order_list[_parseIndex]._orderQty - self._orderQty
                                 self._orderQty = 0
                                 print('Order Matched.')
+                                _marketPrice = _priceToUse
                                 return _matchIndices
                         else:
                             _parseIndex = _parseIndex + 1

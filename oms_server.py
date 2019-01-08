@@ -7,10 +7,10 @@ import time
 import datetime
 import random
 import btsTradingHours
+import bts_order
+import bts_quote
 from sched import scheduler
 from threading import Thread, Lock
-from bts_order import BTS_Order
-from bts_quote import BTS_Quote
 
 _omsBuyOrderList = []
 _omsSellOrderList = []
@@ -21,6 +21,9 @@ _tradingDayClosingTime = datetime.time(btsTradingHours._btsClosingHour, btsTradi
                                               btsTradingHours._btsClosingSecond, btsTradingHours._btsClosingMicrosecond)
 _scheduleTradingDayStartHandler = False
 _scheduleTradingDayCloseHandler = False
+
+_marketPriceAvailable = False
+_tradingHalted = True
 
 _orderQueueAccessLock = Lock()
 
@@ -54,11 +57,14 @@ def _tradingDayStartHandler():
     global _omsSellOrderList
     global _scheduleTradingDayStartHandler
     global _scheduleTradingDayCloseHandler
+    global _marketPriceAvailable
     
     _scheduleTradingDayStartHandler = False
     _scheduleTradingDayCloseHandler = True
 
     print('Start of Trading Day')
+
+    _marketPriceAvailable = False
     
     _buyParseIndex = 0
     while _buyParseIndex < len(_omsBuyOrderList):
@@ -115,7 +121,7 @@ def _tradingDayCloseHandler():
 
 def addToOrderList(_orderList, _newRcvdOrder):
     _orderQueueAccessLock.acquire()
-    if not isinstance(_newRcvdOrder, BTS_Order):
+    if not isinstance(_newRcvdOrder, bts_order.BTS_Order):
         print('Something is wrong. Check.')
         _orderQueueAccessLock.release()
         sys.exit()
@@ -253,6 +259,7 @@ def addToOrderList(_orderList, _newRcvdOrder):
 def oms_scheduler():
     global _scheduleTradingDayStartHandler
     global _scheduleTradingDayCloseHandler
+    global _tradingHalted
     
     print('Scheduler thread started')
     _omsScheduler = scheduler(time.time, time.sleep)
@@ -275,10 +282,12 @@ def oms_scheduler():
             _scheduleTradingDayCloseHandler = True
         while True:
             if _scheduleTradingDayStartHandler:
+                _tradingHalted = True
                 _omsScheduler.enterabs(_omsOpeningTime.timestamp(), 1, _tradingDayStartHandler)
                 _omsClosingTime = datetime.datetime.combine(_omsDate, _tradingDayClosingTime)
                 print('TradingDayStartHandler Scheduled')
             elif _scheduleTradingDayCloseHandler:
+                _tradingHalted = False
                 _omsScheduler.enterabs(_omsClosingTime.timestamp(), 1, _tradingDayCloseHandler)
                 _omsDate = _omsDate + datetime.timedelta(1)
                 _omsOpeningTime = datetime.datetime.combine(_omsDate, _tradingDayOpeningTime)
@@ -355,55 +364,62 @@ def oms_order_listener():
         _orderDateTime = datetime.datetime(_orderYear, _orderMonth, _orderDay, _orderHour, _orderMinute, _orderSecond, _orderMicroSecond, None)
         print(_orderDateTime)
 
-        _newOrder = BTS_Order(_participantId, _orderType, _orderQuantity, _limitPrice, _minPartialFillQty, _timeInForceRemaining, _orderDateTime)
+        if _tradingHalted == True:
+            print('Trading has been halted for the day. Rejecting Order...')
+        else:
+            _newOrder = bts_order.BTS_Order(_participantId, _orderType, _orderQuantity, _limitPrice, _minPartialFillQty, _timeInForceRemaining, _orderDateTime)
 
-        if _newOrder._orderPosition == 'buy':
-            _buyOrderListLen = len(_omsBuyOrderList)
-            if not _omsSellOrderList:
-                print('Adding to {0} order queue...'.format(_newOrder._orderPosition))
-                if not _omsBuyOrderList:
-                    _omsBuyOrderList.append(_newOrder)
-                else:
-                    addToOrderList(_omsBuyOrderList, _newOrder)
-                printUpdatedOrderQueue(_omsBuyOrderList)
-            else:
-                _matchedIndices = _newOrder.check_for_match(_omsSellOrderList)
-                if _matchedIndices is None:
+            if _newOrder._orderPosition == 'buy':
+                _buyOrderListLen = len(_omsBuyOrderList)
+                if not _omsSellOrderList:
+                    print('Adding to {0} order queue...'.format(_newOrder._orderPosition))
                     if not _omsBuyOrderList:
                         _omsBuyOrderList.append(_newOrder)
                     else:
                         addToOrderList(_omsBuyOrderList, _newOrder)
                     printUpdatedOrderQueue(_omsBuyOrderList)
                 else:
-                    print(_matchedIndices)
-                    updateOrderQueue(_omsSellOrderList, _matchedIndices)
-                    if _newOrder._orderQty != 0:
-                        addToOrderList(_omsBuyOrderList, _newOrder)
+                    _orderQueueAccessLock.acquire()
+                    _matchedIndices = _newOrder.check_for_match(_omsSellOrderList)
+                    _orderQueueAccessLock.release()
+                    if _matchedIndices is None:
+                        if not _omsBuyOrderList:
+                            _omsBuyOrderList.append(_newOrder)
+                        else:
+                            addToOrderList(_omsBuyOrderList, _newOrder)
                         printUpdatedOrderQueue(_omsBuyOrderList)
+                    else:
+                        print(_matchedIndices)
+                        updateOrderQueue(_omsSellOrderList, _matchedIndices)
+                        if _newOrder._orderQty != 0:
+                            addToOrderList(_omsBuyOrderList, _newOrder)
+                            printUpdatedOrderQueue(_omsBuyOrderList)
 
-        else:
-            _sellOrderListLen = len(_omsSellOrderList)
-            if not _omsBuyOrderList:
-                print('Adding to {0} order queue...'.format(_newOrder._orderPosition))
-                if not _omsSellOrderList:
-                    _omsSellOrderList.append(_newOrder)
-                else:
-                    addToOrderList(_omsSellOrderList, _newOrder)
-                printUpdatedOrderQueue(_omsSellOrderList)
             else:
-                _matchedIndices = _newOrder.check_for_match(_omsBuyOrderList)
-                if _matchedIndices is None:
+                _sellOrderListLen = len(_omsSellOrderList)
+                if not _omsBuyOrderList:
+                    print('Adding to {0} order queue...'.format(_newOrder._orderPosition))
                     if not _omsSellOrderList:
                         _omsSellOrderList.append(_newOrder)
                     else:
                         addToOrderList(_omsSellOrderList, _newOrder)
                     printUpdatedOrderQueue(_omsSellOrderList)
                 else:
-                    print(_matchedIndices)
-                    updateOrderQueue(_omsBuyOrderList, _matchedIndices)
-                    if _newOrder._orderQty != 0:
-                        addToOrderList(_omsSellOrderList, _newOrder)
+                    _orderQueueAccessLock.acquire()
+                    _matchedIndices = _newOrder.check_for_match(_omsBuyOrderList)
+                    _orderQueueAccessLock.release()
+                    if _matchedIndices is None:
+                        if not _omsSellOrderList:
+                            _omsSellOrderList.append(_newOrder)
+                        else:
+                            addToOrderList(_omsSellOrderList, _newOrder)
                         printUpdatedOrderQueue(_omsSellOrderList)
+                    else:
+                        print(_matchedIndices)
+                        updateOrderQueue(_omsBuyOrderList, _matchedIndices)
+                        if _newOrder._orderQty != 0:
+                            addToOrderList(_omsSellOrderList, _newOrder)
+                            printUpdatedOrderQueue(_omsSellOrderList)
 
 def oms_quote_listener():
     global _omsBuyOrderList
@@ -474,53 +490,63 @@ def oms_quote_listener():
         _quoteDateTime = datetime.datetime(_orderYear, _orderMonth, _orderDay, _orderHour, _orderMinute, _orderSecond, _orderMicroSecond, None)
         print(_quoteDateTime)
 
-        _newQuote = BTS_Quote(_participantId, _bidPrice, _bidSize, _askPrice, _askSize, _minPartialFillQty, _timeInForceRemaining, _quoteDateTime)
-
-        if not _omsSellOrderList:
-            print('Adding to {0} order queue...'.format(_newQuote._buyOrder._orderPosition))
-            if not _omsBuyOrderList:
-                _omsBuyOrderList.append(_newQuote._buyOrder)
-            else:
-                addToOrderList(_omsBuyOrderList, _newQuote._buyOrder)
-            printUpdatedOrderQueue(_omsBuyOrderList)
+        if _tradingHalted == True:
+            print('Trading has been halted for the day. Rejecting Quote...')
         else:
-            _matchedIndices = _newQuote._buyOrder.check_for_match(_omsSellOrderList)
-            if _matchedIndices is None:
+            _newQuote = bts_quote.BTS_Quote(_participantId, _bidPrice, _bidSize, _askPrice, _askSize, _minPartialFillQty, _timeInForceRemaining, _quoteDateTime)
+
+            if not _omsSellOrderList:
+                print('Adding to {0} order queue...'.format(_newQuote._buyOrder._orderPosition))
                 if not _omsBuyOrderList:
                     _omsBuyOrderList.append(_newQuote._buyOrder)
                 else:
                     addToOrderList(_omsBuyOrderList, _newQuote._buyOrder)
                 printUpdatedOrderQueue(_omsBuyOrderList)
             else:
-                print(_matchedIndices)
-                updateOrderQueue(_omsSellOrderList, _matchedIndices)
-                if _newQuote._buyOrder._orderQty != 0:
-                    addToOrderList(_omsBuyOrderList, _newQuote._buyOrder)
+                _orderQueueAccessLock.acquire()
+                _matchedIndices = _newQuote._buyOrder.check_for_match(_omsSellOrderList)
+                _orderQueueAccessLock.release()
+                if _matchedIndices is None:
+                    if not _omsBuyOrderList:
+                        _omsBuyOrderList.append(_newQuote._buyOrder)
+                    else:
+                        addToOrderList(_omsBuyOrderList, _newQuote._buyOrder)
                     printUpdatedOrderQueue(_omsBuyOrderList)
+                else:
+                    print(_matchedIndices)
+                    updateOrderQueue(_omsSellOrderList, _matchedIndices)
+                    if _newQuote._buyOrder._orderQty != 0:
+                        addToOrderList(_omsBuyOrderList, _newQuote._buyOrder)
+                        printUpdatedOrderQueue(_omsBuyOrderList)
 
-        if not _omsBuyOrderList:
-            print('Adding to {0} order queue...'.format(_newQuote._sellOrder._orderPosition))
-            if not _omsSellOrderList:
-                _omsSellOrderList.append(_newQuote._sellOrder)
-            else:
-                addToOrderList(_omsSellOrderList, _newQuote._sellOrder)
-            printUpdatedOrderQueue(_omsSellOrderList)
-        else:
-            _matchedIndices = _newQuote._sellOrder.check_for_match(_omsBuyOrderList)
-            if _matchedIndices is None:
+            if not _omsBuyOrderList:
+                print('Adding to {0} order queue...'.format(_newQuote._sellOrder._orderPosition))
                 if not _omsSellOrderList:
                     _omsSellOrderList.append(_newQuote._sellOrder)
                 else:
                     addToOrderList(_omsSellOrderList, _newQuote._sellOrder)
                 printUpdatedOrderQueue(_omsSellOrderList)
             else:
-                print(_matchedIndices)
-                updateOrderQueue(_omsBuyOrderList, _matchedIndices)
-                if _newQuote._sellOrder._orderQty != 0:
-                    addToOrderList(_omsSellOrderList, _newQuote._sellOrder)
+                _orderQueueAccessLock.acquire()
+                _matchedIndices = _newQuote._sellOrder.check_for_match(_omsBuyOrderList)
+                _orderQueueAccessLock.release()
+                if _matchedIndices is None:
+                    if not _omsSellOrderList:
+                        _omsSellOrderList.append(_newQuote._sellOrder)
+                    else:
+                        addToOrderList(_omsSellOrderList, _newQuote._sellOrder)
                     printUpdatedOrderQueue(_omsSellOrderList)
+                else:
+                    print(_matchedIndices)
+                    updateOrderQueue(_omsBuyOrderList, _matchedIndices)
+                    if _newQuote._sellOrder._orderQty != 0:
+                        addToOrderList(_omsSellOrderList, _newQuote._sellOrder)
+                        printUpdatedOrderQueue(_omsSellOrderList)
             
 def start_oms_server():
+    global _marketPriceAvailable
+    global _omsBuyOrderList
+    global _omsSellOrderList
     
     _schedulerThread = Thread(None, oms_scheduler, 'omsScheduler')
     _schedulerThread.start()
@@ -538,6 +564,25 @@ def start_oms_server():
         if not _quoteListenerThread.is_alive():
             print('Quote Listener not working. Closing OMS...')
             sys.exit()
+        if _marketPriceAvailable == False:
+            if not bts_order._marketPrice is None:
+                print('\nMarket Price Set')
+                _marketPriceAvailable = True
+                _parseIndex = 0
+                while _parseIndex < len(_omsBuyOrderList):
+                    _orderQueueAccessLock.acquire()
+                    _matchedIndices = _omsBuyOrderList[_parseIndex].check_for_match(_omsSellOrderList)
+                    _orderQueueAccessLock.release()
+                    print(_matchedIndices)
+                    updateOrderQueue(_omsSellOrderList, _matchedIndices)
+                    if _omsBuyOrderList[_parseIndex]._orderQty == 0:
+                        del _omsBuyOrderList[_parseIndex]
+                        _parseIndex = _parseIndex - 1
+                    _parseIndex = _parseIndex + 1
+                print('\nBuy Order List')
+                printUpdatedOrderQueue(_omsBuyOrderList)
+                print('\nSell Order List')
+                printUpdatedOrderQueue(_omsSellOrderList)
         
     print('Scheduler thread not alive. Closing OMS...')
     sys.exit()
