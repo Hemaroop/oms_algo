@@ -39,12 +39,14 @@ _scriptFile.write('#!/bin/sh\n')
 
 for _orderIndex in range(_numOrders):
     _orderCommand = ''
-    _clientCommandIndex = random.randint(0,1)
-    _participantId = random.randint(1,100)
-    _orderType = random.randint(0,7)
-    _qtyMultiplier = random.randint(0,bts_constraints._btsMaxMultiplier-1)
+    _clientCommandIndex = random.randint(0, 1)
+    _participantId = random.randint(1, 100)
+    _orderType = random.randint(0, 7)
+    #_qtyMultiplier = random.randint(0, bts_constraints._btsMaxMultiplier-1)
+    _qtyMultiplier = random.randint(0, 9)
     _orderQty = bts_constraints._btsMinOrderSize + (_qtyMultiplier * bts_constraints._btsMinOrderIncrement)
-    _limitPrice = random.uniform(95.0, 105.0)
+    #_limitPrice = random.uniform(95.0, 105.0)
+    _limitPrice = random.randint(99, 101)
     _timeInForce = random.randint(0, 14)
     _sleepTime = random.uniform(0.0, 3.0)
 

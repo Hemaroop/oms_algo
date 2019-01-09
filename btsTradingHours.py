@@ -5,8 +5,8 @@ _btsOpeningMinute = 0
 _btsOpeningSecond = 0
 _btsOpeningMicrosecond = 0
 
-_btsClosingHour = 17
-_btsClosingMinute = 0
+_btsClosingHour = 18
+_btsClosingMinute = 30
 _btsClosingSecond = 0
 _btsClosingMicrosecond = 0
 

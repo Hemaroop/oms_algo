@@ -26,6 +26,7 @@ _marketPriceAvailable = False
 _tradingHalted = True
 
 _orderQueueAccessLock = Lock()
+_processOrderLock = Lock()
 
 def printUpdatedOrderQueue(_orderList):
     _parseIndex = 0
@@ -260,7 +261,7 @@ def oms_scheduler():
     global _scheduleTradingDayStartHandler
     global _scheduleTradingDayCloseHandler
     global _tradingHalted
-    
+
     print('Scheduler thread started')
     _omsScheduler = scheduler(time.time, time.sleep)
     _omsTime = datetime.datetime.now()
@@ -344,7 +345,8 @@ def oms_order_listener():
         _oMinute = _oms_client.recv(4)
         _oSecond = _oms_client.recv(4)
         _oMicroSecond = _oms_client.recv(4)
-        
+
+        _processOrderLock.acquire()
         #Unpacking received data into correct structures
         _participantId = struct.unpack('i', _pId)[0]
         _orderType = struct.unpack('i', _otype)[0]
@@ -420,7 +422,8 @@ def oms_order_listener():
                         if _newOrder._orderQty != 0:
                             addToOrderList(_omsSellOrderList, _newOrder)
                             printUpdatedOrderQueue(_omsSellOrderList)
-
+        _processOrderLock.release()
+                            
 def oms_quote_listener():
     global _omsBuyOrderList
     global _omsSellOrderList
@@ -470,7 +473,8 @@ def oms_quote_listener():
         _oMinute = _oms_client.recv(4)
         _oSecond = _oms_client.recv(4)
         _oMicroSecond = _oms_client.recv(4)
-        
+
+        _processOrderLock.acquire()
         #Unpacking received data into correct structures
         _participantId = struct.unpack('i', _pId)[0]
         _bidPrice = struct.unpack('f', _bprice)[0]
@@ -542,7 +546,8 @@ def oms_quote_listener():
                     if _newQuote._sellOrder._orderQty != 0:
                         addToOrderList(_omsSellOrderList, _newQuote._sellOrder)
                         printUpdatedOrderQueue(_omsSellOrderList)
-            
+        _processOrderLock.release()
+                        
 def start_oms_server():
     global _marketPriceAvailable
     global _omsBuyOrderList
@@ -569,16 +574,22 @@ def start_oms_server():
                 print('\nMarket Price Set')
                 _marketPriceAvailable = True
                 _parseIndex = 0
+                _processOrderLock.acquire()
                 while _parseIndex < len(_omsBuyOrderList):
-                    _orderQueueAccessLock.acquire()
-                    _matchedIndices = _omsBuyOrderList[_parseIndex].check_for_match(_omsSellOrderList)
-                    _orderQueueAccessLock.release()
-                    print(_matchedIndices)
-                    updateOrderQueue(_omsSellOrderList, _matchedIndices)
-                    if _omsBuyOrderList[_parseIndex]._orderQty == 0:
-                        del _omsBuyOrderList[_parseIndex]
-                        _parseIndex = _parseIndex - 1
-                    _parseIndex = _parseIndex + 1
+                    if not _omsSellOrderList:
+                        break
+                    else:
+                        _orderQueueAccessLock.acquire()
+                        _matchedIndices = _omsBuyOrderList[_parseIndex].check_for_match(_omsSellOrderList)
+                        _orderQueueAccessLock.release()
+                        if not _matchedIndices is None:
+                            print(_matchedIndices)
+                            updateOrderQueue(_omsSellOrderList, _matchedIndices)
+                        if _omsBuyOrderList[_parseIndex]._orderQty == 0:
+                            del _omsBuyOrderList[_parseIndex]
+                            _parseIndex = _parseIndex - 1
+                        _parseIndex = _parseIndex + 1
+                _processOrderLock.release()
                 print('\nBuy Order List')
                 printUpdatedOrderQueue(_omsBuyOrderList)
                 print('\nSell Order List')
