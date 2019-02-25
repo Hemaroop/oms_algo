@@ -60,3 +60,11 @@ AUTOMATED TESTING USING SIMULATOR:
 3. Run: python3 oms_server.py > omsServerLog.txt (Stores the output in a file named omsServerLog.txt)
    In another terminal run: ./_autoOrderScript(Generated Timestamp).sh
 
+TRADING HOURS:
+The trading hours are mentioned in btsTradingHours.py
+DEFAULT: Starting at 0900 Hrs and closing at 1700 Hrs.
+The orders arriving after closing of trade are not accepted/stored in the order book. This can be changed if required.
+
+MINIMUM AND MAXIMUM TRADING SIZES:
+These are mentioned in bts_constraints.py
+Includes minimum order size (currently 1000), minimum order increment (currently 1000), maximum order increments allowed (currently 200).
