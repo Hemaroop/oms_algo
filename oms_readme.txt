@@ -1,5 +1,10 @@
 README
 
+This is an Order Matching System Prototype for securities trading. There are many things that I have not covered yet.This OMS prototype allows the users to place both separate buy & sell orders and quotes. In the current state it can be extended to all kinds of securities with some customization.
+
+TO DO:
+1. Add a mechanism for including brokerage charges and taxes. (This is going to be a lot of work!!)
+
 ORDER CODES:
 0: Buy Market Partial
 1: Buy Limit Partial
@@ -65,6 +70,6 @@ The trading hours are mentioned in btsTradingHours.py
 DEFAULT: Starting at 0900 Hrs and closing at 1700 Hrs.
 The orders arriving after closing of trade are not accepted/stored in the order book. This can be changed if required.
 
-MINIMUM AND MAXIMUM TRADING SIZES:
+MINIMUM AND MAXIMUM TRADING SIZES: (This can be customized for different securities.)
 These are mentioned in bts_constraints.py
 Includes minimum order size (currently 1000), minimum order increment (currently 1000), maximum order increments allowed (currently 200).
